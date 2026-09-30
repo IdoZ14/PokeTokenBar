@@ -580,6 +580,9 @@ struct CompanionHeader: View {
                             }
                         }
                         ProgressView(value: store.progress).controlSize(.small).tint(.orange)
+                            .contentShape(Rectangle().inset(by: -4))
+                            .help(CompanionStore.progressDetail(used: store.state.active?.usedAtStage ?? 0,
+                                                                 total: store.threshold))
                         if store.tokensToNext > 0 {
                             let amount = TokenFormatter.compact(store.tokensToNext)
                             Text(store.isFinalStage ? store.l.toGraduation(amount) : store.l.toNextEvolution(amount))
@@ -601,6 +604,9 @@ struct CompanionHeader: View {
                             }
                         }
                         ProgressView(value: store.eggProgress).controlSize(.small).tint(.orange)
+                            .contentShape(Rectangle().inset(by: -4))
+                            .help(CompanionStore.progressDetail(used: store.state.eggUsage,
+                                                                 total: store.eggHatchThreshold))
                         if store.isEgg, store.isHatchRetryDelayed {
                             Text(store.l.eggHatchDelayed)
                                 .font(.caption2)

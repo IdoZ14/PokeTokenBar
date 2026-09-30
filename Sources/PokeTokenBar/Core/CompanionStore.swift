@@ -277,6 +277,16 @@ final class CompanionStore {
     }
     var tokensToNext: Int { guard let a = state.active else { return 0 }; return max(0, threshold - a.usedAtStage) }
 
+    /// 진행률 바 hover 툴팁용 "X / Y · Z%" — 진화·부화 두 바가 공유하는 순수 헬퍼.
+    /// used 는 total 로 클램프(초과분 표시 방지), 퍼센트는 내림(완료 전엔 100% 로 안 보이게).
+    /// total <= 0 은 크래시 없이 0% 로 처리한다.
+    nonisolated static func progressDetail(used: Int, total: Int) -> String {
+        let clampedTotal = max(0, total)
+        let clampedUsed = min(max(0, used), clampedTotal)
+        let percent = clampedTotal > 0 ? Int((Double(clampedUsed) / Double(clampedTotal) * 100).rounded(.down)) : 0
+        return "\(TokenFormatter.compact(clampedUsed)) / \(TokenFormatter.compact(total)) · \(percent)%"
+    }
+
     /// 진화 라인 표시용: 실현된 경로 + 다음 단계 미리보기.
     /// 유일하게 이어지는 단계 뒤에 분기가 있으면, 그 확정 접두어와 하나의 미지 항목을 함께 보여 준다.
     /// 분기 후보는 부화 시 계획됐더라도 실제 진화 전까지 하나의 미지 항목으로 숨긴다.
