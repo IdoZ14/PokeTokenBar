@@ -506,6 +506,14 @@ struct CompanionHeader: View {
     @State private var seenMintSeq = -1
     @State private var mintSparkle = false
 
+    /// Hover tooltip for the growth bars: "X / Y · Z%". Used is clamped to total (egg usage can
+    /// overshoot while a hatch retry is pending) and the percent floors, so 100% means done.
+    nonisolated static func progressDetail(used: Int, total: Int) -> String {
+        let used = min(used, total)
+        let percent = total > 0 ? used * 100 / total : 0
+        return "\(TokenFormatter.compact(used)) / \(TokenFormatter.compact(total)) · \(percent)%"
+    }
+
     /// 부화 임박(90%+) — 알이 흔들리고 문구가 바뀐다.
     private var eggImminent: Bool { store.isEgg && store.eggProgress >= 0.9 }
 
@@ -581,8 +589,8 @@ struct CompanionHeader: View {
                         }
                         ProgressView(value: store.progress).controlSize(.small).tint(.orange)
                             .contentShape(Rectangle().inset(by: -4))
-                            .help(CompanionStore.progressDetail(used: store.state.active?.usedAtStage ?? 0,
-                                                                 total: store.threshold))
+                            .help(Self.progressDetail(used: store.state.active?.usedAtStage ?? 0,
+                                                       total: store.threshold))
                         if store.tokensToNext > 0 {
                             let amount = TokenFormatter.compact(store.tokensToNext)
                             Text(store.isFinalStage ? store.l.toGraduation(amount) : store.l.toNextEvolution(amount))
@@ -605,8 +613,8 @@ struct CompanionHeader: View {
                         }
                         ProgressView(value: store.eggProgress).controlSize(.small).tint(.orange)
                             .contentShape(Rectangle().inset(by: -4))
-                            .help(CompanionStore.progressDetail(used: store.state.eggUsage,
-                                                                 total: store.eggHatchThreshold))
+                            .help(Self.progressDetail(used: store.state.eggUsage,
+                                                       total: store.eggHatchThreshold))
                         if store.isEgg, store.isHatchRetryDelayed {
                             Text(store.l.eggHatchDelayed)
                                 .font(.caption2)
