@@ -1401,10 +1401,13 @@ struct PokemonDetailView: View {
                        shiny: displayedShiny, spriteStore: spriteStore, unownForm: species.unownForm)
                 .frame(width: 104, height: 104)
             VStack(alignment: .leading, spacing: 5) {
-                Text(species.name).font(.title3.weight(.bold))
+                HStack(alignment: .firstTextBaseline) {
+                    Text(species.name).font(.title3.weight(.bold))
+                    Spacer(minLength: 8)
+                    Text(store.l.rarityLabel(species.rarity))
+                        .font(.callout.weight(.semibold)).foregroundStyle(.secondary)
+                }
                 if let details = store.pokemonDetailsByID[species.id] { typeBadges(details.types) }
-                Text(store.l.rarityLabel(species.rarity))
-                    .font(.callout.weight(.semibold)).foregroundStyle(.secondary)
                 if displayedShiny { Text("✨ \(store.l.dexShinyLabel)").font(.callout) }
                 if let individual, store.isActiveDexEntry(individual) { Text(store.l.dexRaising).font(.callout).foregroundStyle(Color.accentColor) }
                 let isRepresentative = store.isRepresentative(species)
@@ -1414,6 +1417,7 @@ struct PokemonDetailView: View {
                                                          unownForm: species.unownForm)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
