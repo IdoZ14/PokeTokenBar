@@ -9,6 +9,24 @@ func rarityColor(_ r: Rarity?) -> Color {
     }
 }
 
+/// Classic main-series type-chart colors, keyed by PokeAPI's canonical lowercase English type name.
+let pokemonTypeHex: [String: UInt32] = [
+    "normal": 0xAAAA99, "fire": 0xFF4422, "water": 0x3399FF, "electric": 0xFFCC33,
+    "grass": 0x77CC55, "ice": 0x66CCFF, "fighting": 0xBB5544, "poison": 0xAA5599,
+    "ground": 0xDDBB55, "flying": 0x8899FF, "psychic": 0xFF5599, "bug": 0xAABB22,
+    "rock": 0xBBAA66, "ghost": 0x6666BB, "dragon": 0x7766EE, "dark": 0x775544,
+    "steel": 0xAAAABB, "fairy": 0xEE99EE,
+]
+
+/// Type badge fill. Keyed on the canonical PokeAPI name (not the localized label);
+/// unknown types (stellar, shadow, unknown, ...) fall back to neutral gray.
+func pokemonTypeColor(_ type: String) -> Color {
+    guard let hex = pokemonTypeHex[type.lowercased()] else { return .gray }
+    return Color(.sRGB, red: Double((hex >> 16) & 0xFF) / 255,
+                 green: Double((hex >> 8) & 0xFF) / 255,
+                 blue: Double(hex & 0xFF) / 255)
+}
+
 /// 희귀도 캡슐을 늘어놓는 순서(귀한 것부터) — 포획 로그 요약 헤더와 도감 헤더가 공유한다.
 /// 순수 표시 순서다. 목록 정렬에는 쓰지 않는다.
 let rarityDisplayOrder: [Rarity] = [.legendary, .rare, .uncommon, .common]
@@ -1384,6 +1402,7 @@ struct PokemonDetailView: View {
                 .frame(width: 104, height: 104)
             VStack(alignment: .leading, spacing: 5) {
                 Text(species.name).font(.title3.weight(.bold))
+                if let details = store.pokemonDetailsByID[species.id] { typeBadges(details.types) }
                 Text(store.l.rarityLabel(species.rarity))
                     .font(.callout.weight(.semibold)).foregroundStyle(.secondary)
                 if displayedShiny { Text("✨ \(store.l.dexShinyLabel)").font(.callout) }
@@ -1495,17 +1514,22 @@ struct PokemonDetailView: View {
         .font(.system(size: 12))
     }
 
+    private func typeBadges(_ types: [String]) -> some View {
+        HStack(spacing: 5) {
+            ForEach(types, id: \.self) { type in
+                PokemonNameLabel(.type, type, language: store.language).textCase(.uppercase)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.35), radius: 0.5, y: 0.5)
+                    .padding(.horizontal, 7).padding(.vertical, 2)
+                    .background(pokemonTypeColor(type), in: Capsule())
+            }
+        }
+    }
+
     private func speciesSection(_ details: PokemonDetails) -> some View {
         VStack(alignment: .leading, spacing: 7) {
             detailTitle(store.l.speciesData)
-            HStack(spacing: 5) {
-                ForEach(details.types, id: \.self) { type in
-                    PokemonNameLabel(.type, type, language: store.language).textCase(.uppercase)
-                        .font(.system(size: 11, weight: .bold))
-                        .padding(.horizontal, 6).padding(.vertical, 3)
-                        .background(Color.accentColor.opacity(0.16), in: Capsule())
-                }
-            }
             HStack(spacing: 14) {
                 valuePair(store.l.height, String(format: "%.1f m", Double(details.height) / 10))
                 valuePair(store.l.weight, String(format: "%.1f kg", Double(details.weight) / 10))
