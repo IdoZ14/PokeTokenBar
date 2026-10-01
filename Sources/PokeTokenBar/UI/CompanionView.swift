@@ -536,8 +536,13 @@ struct DexEntryLink: ViewModifier {
                     .animation(.easeOut(duration: 0.12), value: isHovered)
             }
             .buttonStyle(.plain)
-            .onHover { isHovered = $0 }
-            .linkPointerStyle()
+            .onContinuousHover { phase in
+                isHovered = phase != .ended
+                Self.cursor(after: phase == .ended ? .ended : .moved, wasHovered: isHovered)?.nsCursor.set()
+            }
+            // A click navigates the link away while the pointer is still on it; no `.ended` follows,
+            // so without this the hand cursor sticks on the next screen.
+            .onDisappear { Self.cursor(after: .disappeared, wasHovered: isHovered)?.nsCursor.set() }
             .help(hint)
             .accessibilityLabel(accessibilityName.map { "\($0), \(hint)" } ?? hint)
         } else {
@@ -546,15 +551,20 @@ struct DexEntryLink: ViewModifier {
     }
 }
 
-private extension View {
-    /// Pointing-hand cursor over links. `pointerStyle` is macOS 15+; on 14 the hover highlight alone
-    /// signals it (manual `NSCursor.push/pop` leaks when the click navigates the view away mid-hover).
-    @ViewBuilder
-    func linkPointerStyle() -> some View {
-        if #available(macOS 15, *) {
-            pointerStyle(.link)
-        } else {
-            self
+extension DexEntryLink {
+    enum HoverEvent { case moved, ended, disappeared }
+    enum Cursor {
+        case hand, arrow
+        var nsCursor: NSCursor { self == .hand ? .pointingHand : .arrow }
+    }
+
+    /// The cursor to set after a hover event, or nil to leave it alone. `set()` (not push/pop) so
+    /// nothing can stay stacked; disappearing only resets a cursor this link set itself.
+    static func cursor(after event: HoverEvent, wasHovered: Bool) -> Cursor? {
+        switch event {
+        case .moved: .hand
+        case .ended: .arrow
+        case .disappeared: wasHovered ? .arrow : nil
         }
     }
 }
