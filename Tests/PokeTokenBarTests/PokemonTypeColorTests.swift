@@ -12,26 +12,29 @@ final class PokemonTypeColorTests: XCTestCase {
         return (r << 16) | (g << 8) | b
     }
 
+    private func color(_ apiName: String) -> Color { BadgeTint.type(PokemonType(apiName: apiName)).color }
+
     func testKnownTypesUseClassicTypeChartColors() {
-        XCTAssertEqual(hex(pokemonTypeColor("fire")), 0xFF4422)
-        XCTAssertEqual(hex(pokemonTypeColor("water")), 0x3399FF)
-        XCTAssertEqual(hex(pokemonTypeColor("fairy")), 0xEE99EE)
+        XCTAssertEqual(hex(color("fire")), 0xFF4422)
+        XCTAssertEqual(hex(color("water")), 0x3399FF)
+        XCTAssertEqual(hex(color("fairy")), 0xEE99EE)
     }
 
-    func testPaletteCoversAllEighteenMainSeriesTypes() {
+    func testEnumCoversAllEighteenMainSeriesTypes() {
         let types = ["normal", "fire", "water", "electric", "grass", "ice", "fighting", "poison", "ground",
                      "flying", "psychic", "bug", "rock", "ghost", "dragon", "dark", "steel", "fairy"]
-        XCTAssertEqual(Set(pokemonTypeHex.keys), Set(types))
+        XCTAssertEqual(Set(PokemonType.allCases.map(\.rawValue)), Set(types))
     }
 
     func testLookupIsCaseInsensitive() {
-        XCTAssertEqual(hex(pokemonTypeColor("Electric")), 0xFFCC33)
-        XCTAssertEqual(hex(pokemonTypeColor("GRASS")), 0x77CC55)
+        XCTAssertEqual(hex(color("Electric")), 0xFFCC33)
+        XCTAssertEqual(hex(color("GRASS")), 0x77CC55)
     }
 
     func testUnknownTypesFallBackToGray() {
         for type in ["stellar", "shadow", "unknown", ""] {
-            XCTAssertEqual(pokemonTypeColor(type), .gray, type)
+            XCTAssertNil(PokemonType(apiName: type), type)
+            XCTAssertEqual(color(type), .gray, type)
         }
     }
 }
