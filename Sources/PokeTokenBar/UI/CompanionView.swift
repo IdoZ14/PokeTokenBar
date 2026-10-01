@@ -487,6 +487,58 @@ struct EvoLineView: View {
     }
 }
 
+/// Growth bar. Hovering 300 ms grows it with a small spring "plop" and reveals the exact numbers
+/// ("X / Y · Z%") inside; leaving shrinks it back. The expanded height is always reserved, so the
+/// hover never moves the layout or resizes the popover.
+@MainActor
+struct LabeledProgressBar: View {
+    let value: Double
+    let label: String
+    @State private var expanded = false
+    @State private var hoverTask: Task<Void, Never>?
+
+    private static let collapsedHeight: CGFloat = 6
+    private static let expandedHeight: CGFloat = 12
+
+    var body: some View {
+        Capsule().fill(Color.secondary.opacity(0.2))
+            .overlay(alignment: .leading) {
+                GeometryReader { geo in
+                    Capsule().fill(Color.orange).frame(width: geo.size.width * min(1, max(0, value)))
+                }
+            }
+            .overlay {
+                Text(label)
+                    .font(.system(size: 9, weight: .semibold)).monospacedDigit()
+                    .foregroundStyle(.primary)
+                    .lineLimit(1).minimumScaleFactor(0.7)
+                    .padding(.horizontal, 6)
+                    .opacity(expanded ? 1 : 0)
+                    // In after the bar has grown; out at once so it never squeezes into the thin bar.
+                    .animation(expanded ? .easeIn(duration: 0.12).delay(0.12) : .easeOut(duration: 0.06),
+                               value: expanded)
+            }
+            .clipShape(Capsule())
+            .frame(height: expanded ? Self.expandedHeight : Self.collapsedHeight)
+            .frame(height: Self.expandedHeight)
+            .contentShape(Rectangle())
+            .onHover { hovering in
+                hoverTask?.cancel()
+                if hovering {
+                    hoverTask = Task {
+                        try? await Task.sleep(for: .milliseconds(300))
+                        guard !Task.isCancelled else { return }
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.55)) { expanded = true }
+                    }
+                } else {
+                    withAnimation(.easeOut(duration: 0.18)) { expanded = false }
+                }
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityValue(label)
+    }
+}
+
 /// 팝오버 상단 — 현재 포켓몬 + 진화 진행 + 부화/진화 연출.
 @MainActor
 struct CompanionHeader: View {
@@ -587,10 +639,9 @@ struct CompanionHeader: View {
                                     .fixedSize()
                             }
                         }
-                        ProgressView(value: store.progress).controlSize(.small).tint(.orange)
-                            .contentShape(Rectangle().inset(by: -4))
-                            .help(Self.progressDetail(used: store.state.active?.usedAtStage ?? 0,
-                                                       total: store.threshold))
+                        LabeledProgressBar(value: store.progress,
+                                           label: Self.progressDetail(used: store.state.active?.usedAtStage ?? 0,
+                                                                      total: store.threshold))
                         if store.tokensToNext > 0 {
                             let amount = TokenFormatter.compact(store.tokensToNext)
                             Text(store.isFinalStage ? store.l.toGraduation(amount) : store.l.toNextEvolution(amount))
@@ -611,10 +662,9 @@ struct CompanionHeader: View {
                                     .clipShape(Capsule())
                             }
                         }
-                        ProgressView(value: store.eggProgress).controlSize(.small).tint(.orange)
-                            .contentShape(Rectangle().inset(by: -4))
-                            .help(Self.progressDetail(used: store.state.eggUsage,
-                                                       total: store.eggHatchThreshold))
+                        LabeledProgressBar(value: store.eggProgress,
+                                           label: Self.progressDetail(used: store.state.eggUsage,
+                                                                      total: store.eggHatchThreshold))
                         if store.isEgg, store.isHatchRetryDelayed {
                             Text(store.l.eggHatchDelayed)
                                 .font(.caption2)
