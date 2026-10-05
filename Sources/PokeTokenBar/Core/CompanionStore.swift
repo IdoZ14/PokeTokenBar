@@ -176,11 +176,7 @@ final class CompanionStore {
 
     var hasActive: Bool { state.active != nil }
     var rarity: Rarity? { state.active?.rarity }
-    var currentIsShiny: Bool {
-        guard let a = state.active else { return false }
-        if a.dittoDisguise != nil && !a.dittoRevealed { return false }   // 위장 중엔 이로치 숨김(리빌 때 공개)
-        return a.isShiny
-    }
+    var currentIsShiny: Bool { state.active?.displaysShiny ?? false }   // 위장 중엔 이로치 숨김(리빌 때 공개)
     /// 새 알(리롤) 구매 시 실수로 놓아주지 않도록 2단계 확인이 필요한 고가치 개체인지 판정.
     /// 이로치(shiny)이거나 전설(legendary)인 경우에만 2단계 경고를 띄운다.
     /// 희귀(rare)는 고급/희귀 알의 반복 리롤 피로도(alert fatigue)를 방지하기 위해 일반 확인만 거친다.
@@ -457,6 +453,14 @@ final class CompanionStore {
     /// 아직 진화하지 않은 종이 보유로 잡힌다.
     var dexSpecies: [DexSpecies] {
         collectedDexSpecies(groupUnownForms: false)
+    }
+
+    /// Sprite → Pokédex detail link targets (species number → dex cell `collectionID`). Only species
+    /// in the dex have a key, so eggs, unreached evolutions and uncaught species are not clickable.
+    /// The main dex does not split Unown letters (the letter is picked on the detail page), so a
+    /// species number maps to exactly one cell.
+    var dexLinkTargets: [Int: String] {
+        dexSpecies.reduce(into: [:]) { links, species in links[species.id] = species.collectionID }
     }
 
     /// Collected form summaries for the detail picker; missing forms remain visible but disabled.
